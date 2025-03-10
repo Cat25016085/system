@@ -98,38 +98,122 @@
 
 
 
+// import React, { useState } from 'react';
+// import { QRCodeCanvas } from 'qrcode.react';
+
+// function RegistrationForm() {
+//   const [formData, setFormData] = useState({ name: '', contact: '' });
+//   const [submitted, setSubmitted] = useState(false);
+//   const [qrValue, setQrValue] = useState('');
+
+//   const handleChange = (e) => {
+//     setFormData({ ...formData, [e.target.name]: e.target.value });
+//   };
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     // 建立一個唯一識別碼，這裡使用時間戳記
+//     const participantId = Date.now().toString();
+//     const dataToSave = { ...formData, id: participantId };
+
+//     try {
+//       // 如果你尚未建立後端 API，這邊可以暫時直接模擬成功：
+//       // const response = await fetch('/api/participants', {
+//       //   method: 'POST',
+//       //   headers: { 'Content-Type': 'application/json' },
+//       //   body: JSON.stringify(dataToSave)
+//       // });
+//       // if (!response.ok) throw new Error('資料儲存失敗');
+
+//       // 模擬成功後直接更新狀態
+//       setQrValue(JSON.stringify(dataToSave));
+//       setSubmitted(true);
+//     } catch (error) {
+//       console.error('Error saving data:', error);
+//     }
+//   };
+
+//   return (
+//     <div style={{ padding: '20px' }}>
+//       <h1>抽獎登記</h1>
+//       { !submitted ? (
+//         <form onSubmit={handleSubmit}>
+//           <div style={{ marginBottom: '10px' }}>
+//             <label>姓名：</label>
+//             <input
+//               type="text"
+//               name="name"
+//               value={formData.name}
+//               onChange={handleChange}
+//               required
+//             />
+//           </div>
+//           <div style={{ marginBottom: '10px' }}>
+//             <label>聯絡方式：</label>
+//             <input
+//               type="text"
+//               name="contact"
+//               value={formData.contact}
+//               onChange={handleChange}
+//               required
+//             />
+//           </div>
+//           <button type="submit">提交並生成 QR Code</button>
+//         </form>
+//       ) : (
+//         <div>
+//           <h2>您的專屬抽獎 QR Code</h2>
+//           <QRCodeCanvas value={qrValue} />
+//           <p>請將此 QR Code 提供給工作人員進行驗證。</p>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// export default RegistrationForm;
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 
 function RegistrationForm() {
   const [formData, setFormData] = useState({ name: '', contact: '' });
   const [submitted, setSubmitted] = useState(false);
+  // QR Code 內容預設為空
   const [qrValue, setQrValue] = useState('');
 
+  // 處理表單欄位變更
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // 表單提交時執行
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // 建立一個唯一識別碼，這裡使用時間戳記
+    // 產生唯一識別碼（這裡以時間戳為例）
     const participantId = Date.now().toString();
-    const dataToSave = { ...formData, id: participantId };
+    // 模擬資料庫中參與者資料，並加上初始狀態 entered: false 表示尚未加入抽獎箱
+    const dataToSave = { ...formData, id: participantId, entered: false };
 
     try {
-      // 如果你尚未建立後端 API，這邊可以暫時直接模擬成功：
-      // const response = await fetch('/api/participants', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(dataToSave)
-      // });
-      // if (!response.ok) throw new Error('資料儲存失敗');
-
-      // 模擬成功後直接更新狀態
-      setQrValue(JSON.stringify(dataToSave));
+      // 模擬 API 呼叫，實際上這裡應該用 fetch 將資料 POST 到後端儲存
+      console.log("保存資料：", dataToSave);
+      // 一旦儲存成功，生成 QR Code 內容（這裡只放 participantId）
+      setQrValue(JSON.stringify({ id: participantId }));
       setSubmitted(true);
     } catch (error) {
-      console.error('Error saving data:', error);
+      console.error("資料儲存錯誤：", error);
     }
   };
 
@@ -158,13 +242,13 @@ function RegistrationForm() {
               required
             />
           </div>
-          <button type="submit">提交並生成 QR Code</button>
+          <button type="submit">提交登記</button>
         </form>
       ) : (
         <div>
-          <h2>您的專屬抽獎 QR Code</h2>
+          <h2>登記成功！</h2>
+          <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
           <QRCodeCanvas value={qrValue} />
-          <p>請將此 QR Code 提供給工作人員進行驗證。</p>
         </div>
       )}
     </div>
