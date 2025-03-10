@@ -184,37 +184,113 @@
 
 
 
-import React, { useState } from 'react';
+// import React, { useState } from 'react';
+// import { QRCodeCanvas } from 'qrcode.react';
+
+// function RegistrationForm() {
+//   const [formData, setFormData] = useState({ name: '', contact: '' });
+//   const [submitted, setSubmitted] = useState(false);
+//   // QR Code 內容預設為空
+//   const [qrValue, setQrValue] = useState('');
+
+//   // 處理表單欄位變更
+//   const handleChange = (e) => {
+//     setFormData({ ...formData, [e.target.name]: e.target.value });
+//   };
+
+//   // 表單提交時執行
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     // 產生唯一識別碼（這裡以時間戳為例）
+//     const participantId = Date.now().toString();
+//     // 模擬資料庫中參與者資料，並加上初始狀態 entered: false 表示尚未加入抽獎箱
+//     const dataToSave = { ...formData, id: participantId, entered: false };
+
+//     try {
+//       // 模擬 API 呼叫，實際上這裡應該用 fetch 將資料 POST 到後端儲存
+//       console.log("保存資料：", dataToSave);
+//       // 一旦儲存成功，生成 QR Code 內容（這裡只放 participantId）
+//       setQrValue(JSON.stringify({ id: participantId }));
+//       setSubmitted(true);
+//     } catch (error) {
+//       console.error("資料儲存錯誤：", error);
+//     }
+//   };
+
+//   return (
+//     <div style={{ padding: '20px' }}>
+//       <h1>抽獎登記</h1>
+//       { !submitted ? (
+//         <form onSubmit={handleSubmit}>
+//           <div style={{ marginBottom: '10px' }}>
+//             <label>姓名：</label>
+//             <input
+//               type="text"
+//               name="name"
+//               value={formData.name}
+//               onChange={handleChange}
+//               required
+//             />
+//           </div>
+//           <div style={{ marginBottom: '10px' }}>
+//             <label>聯絡方式：</label>
+//             <input
+//               type="text"
+//               name="contact"
+//               value={formData.contact}
+//               onChange={handleChange}
+//               required
+//             />
+//           </div>
+//           <button type="submit">提交登記</button>
+//         </form>
+//       ) : (
+//         <div>
+//           <h2>登記成功！</h2>
+//           <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
+//           <QRCodeCanvas value={qrValue} />
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// export default RegistrationForm;
+
+
+
+
+
+
+
+
+
+
+import React, { useState, useContext } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
+import { ParticipantsContext } from './ParticipantsContext';
 
 function RegistrationForm() {
+  const { addParticipant } = useContext(ParticipantsContext);
   const [formData, setFormData] = useState({ name: '', contact: '' });
   const [submitted, setSubmitted] = useState(false);
-  // QR Code 內容預設為空
   const [qrValue, setQrValue] = useState('');
 
-  // 處理表單欄位變更
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 表單提交時執行
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    // 產生唯一識別碼（這裡以時間戳為例）
     const participantId = Date.now().toString();
-    // 模擬資料庫中參與者資料，並加上初始狀態 entered: false 表示尚未加入抽獎箱
     const dataToSave = { ...formData, id: participantId, entered: false };
 
-    try {
-      // 模擬 API 呼叫，實際上這裡應該用 fetch 將資料 POST 到後端儲存
-      console.log("保存資料：", dataToSave);
-      // 一旦儲存成功，生成 QR Code 內容（這裡只放 participantId）
-      setQrValue(JSON.stringify({ id: participantId }));
-      setSubmitted(true);
-    } catch (error) {
-      console.error("資料儲存錯誤：", error);
-    }
+    // 模擬資料儲存成功
+    console.log("保存資料：", dataToSave);
+    // 將新參與者加入全局狀態
+    addParticipant(dataToSave);
+    setQrValue(JSON.stringify({ id: participantId }));
+    setSubmitted(true);
   };
 
   return (
