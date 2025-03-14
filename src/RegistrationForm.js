@@ -347,73 +347,138 @@
 
 
 
-import React, { useState, useContext, useEffect } from 'react';
+// import React, { useState, useContext, useEffect } from 'react';
+// import { QRCodeCanvas } from 'qrcode.react';
+// import { ParticipantsContext } from './ParticipantsContext';
+
+// function RegistrationForm() {
+//   const { addParticipant } = useContext(ParticipantsContext);
+//   const [formData, setFormData] = useState({ name: '', contact: '' });
+//   const [submitted, setSubmitted] = useState(false);
+//   const [qrValue, setQrValue] = useState('');
+
+//   useEffect(() => {
+//     // 檢查 localStorage，防止重複填寫
+//     const savedId = localStorage.getItem('deviceId');
+//     if (savedId) {
+//       setQrValue(JSON.stringify({ id: savedId }));
+//       setSubmitted(true);
+//     }
+//   }, []);
+
+//   const handleChange = (e) => {
+//     setFormData({ ...formData, [e.target.name]: e.target.value });
+//   };
+
+//   const handleSubmit = (e) => {
+//     e.preventDefault();
+
+//     if (submitted) {
+//       alert('您已填寫過表單，無法重複參加！');
+//       return;
+//     }
+
+//     const participantId = Date.now().toString(); // 生成唯一 ID
+//     const dataToSave = { ...formData, id: participantId, entered: false };
+
+//     console.log("保存資料：", dataToSave); // 模擬存儲
+//     addParticipant(dataToSave); // 加入全域狀態
+
+//     setQrValue(JSON.stringify({ id: participantId })); // 產生 QR Code
+//     setSubmitted(true);
+
+//     localStorage.setItem('deviceId', participantId); // 記錄該設備已填寫
+//   };
+
+//   return (
+//     <div style={{ padding: '20px' }}>
+//       <h1>抽獎登記</h1>
+//       {!submitted ? (
+//         <form onSubmit={handleSubmit}>
+//           <div style={{ marginBottom: '10px' }}>
+//             <label>姓名：</label>
+//             <input
+//               type="text"
+//               name="name"
+//               value={formData.name}
+//               onChange={handleChange}
+//               required
+//             />
+//           </div>
+//           <div style={{ marginBottom: '10px' }}>
+//             <label>聯絡方式：</label>
+//             <input
+//               type="text"
+//               name="contact"
+//               value={formData.contact}
+//               onChange={handleChange}
+//               required
+//             />
+//           </div>
+//           <button type="submit">提交登記</button>
+//         </form>
+//       ) : (
+//         <div>
+//           <h2>登記成功！</h2>
+//           <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
+//           <QRCodeCanvas value={qrValue} />
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// export default RegistrationForm;
+
+
+
+
+
+
+import React, { useState } from 'react';
+import { supabase } from './supabase';
 import { QRCodeCanvas } from 'qrcode.react';
-import { ParticipantsContext } from './ParticipantsContext';
 
 function RegistrationForm() {
-  const { addParticipant } = useContext(ParticipantsContext);
   const [formData, setFormData] = useState({ name: '', contact: '' });
   const [submitted, setSubmitted] = useState(false);
   const [qrValue, setQrValue] = useState('');
-
-  useEffect(() => {
-    // 檢查 localStorage，防止重複填寫
-    const savedId = localStorage.getItem('deviceId');
-    if (savedId) {
-      setQrValue(JSON.stringify({ id: savedId }));
-      setSubmitted(true);
-    }
-  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (submitted) {
-      alert('您已填寫過表單，無法重複參加！');
+    // 將資料存入 Supabase
+    const { data, error } = await supabase
+      .from('participants')
+      .insert([{ ...formData, entered: false }])
+      .select();
+
+    if (error) {
+      console.error('儲存失敗:', error.message);
       return;
     }
 
-    const participantId = Date.now().toString(); // 生成唯一 ID
-    const dataToSave = { ...formData, id: participantId, entered: false };
-
-    console.log("保存資料：", dataToSave); // 模擬存儲
-    addParticipant(dataToSave); // 加入全域狀態
-
-    setQrValue(JSON.stringify({ id: participantId })); // 產生 QR Code
+    // 設定 QR Code
+    setQrValue(JSON.stringify({ id: data[0].id }));
     setSubmitted(true);
-
-    localStorage.setItem('deviceId', participantId); // 記錄該設備已填寫
   };
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>抽獎登記</h1>
-      {!submitted ? (
+      { !submitted ? (
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '10px' }}>
             <label>姓名：</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
+            <input type="text" name="name" value={formData.name} onChange={handleChange} required />
           </div>
           <div style={{ marginBottom: '10px' }}>
             <label>聯絡方式：</label>
-            <input
-              type="text"
-              name="contact"
-              value={formData.contact}
-              onChange={handleChange}
-              required
-            />
+            <input type="text" name="contact" value={formData.contact} onChange={handleChange} required />
           </div>
           <button type="submit">提交登記</button>
         </form>

@@ -1,39 +1,38 @@
-import React, { useState, useContext } from 'react';
-import { ParticipantsContext } from './ParticipantsContext';
+import React, { useState } from 'react';
+import { supabase } from './supabase';
+import QrScanner from 'qr-scanner';
 
-function ScanInterface() {
-  const { participants, markAsEntered } = useContext(ParticipantsContext);
-  const [scannedId, setScannedId] = useState('');
-  const [message, setMessage] = useState('');
+function ScanQRCode() {
+  const [scanResult, setScanResult] = useState('');
+  
+  const handleScan = async (result) => {
+    if (!result) return;
+    setScanResult(result);
 
-  const handleScan = () => {
-    const participant = participants.find((p) => p.id === scannedId);
+    try {
+      const participantData = JSON.parse(result);
+      const { error } = await supabase
+        .from('participants')
+        .update({ entered: true })
+        .eq('id', participantData.id);
 
-    if (participant) {
-      if (participant.entered) {
-        setMessage(`參與者 ${participant.name} 已經投入抽獎箱！`);
+      if (error) {
+        console.error('更新失敗:', error.message);
       } else {
-        markAsEntered(scannedId);
-        setMessage(`成功將 ${participant.name} 投入抽獎箱！`);
+        alert('參與者已投入抽獎箱！');
       }
-    } else {
-      setMessage('找不到對應的參與者 ID');
+    } catch (err) {
+      console.error('QR Code 格式錯誤:', err.message);
     }
   };
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>掃描 QR Code</h1>
-      <input
-        type="text"
-        placeholder="輸入掃描到的 ID"
-        value={scannedId}
-        onChange={(e) => setScannedId(e.target.value)}
-      />
-      <button onClick={handleScan}>確認投入抽獎箱</button>
-      {message && <p>{message}</p>}
+      <QrScanner onScan={handleScan} />
+      <p>{scanResult && `掃描結果: ${scanResult}`}</p>
     </div>
   );
 }
 
-export default ScanInterface;
+export default ScanQRCode;

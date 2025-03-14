@@ -1,46 +1,50 @@
-import React, { useContext } from 'react';
-import { ParticipantsContext } from './ParticipantsContext';
+import React, { useState, useEffect } from 'react';
+import { supabase } from './supabase';
 
 function Lottery() {
-  const { participants } = useContext(ParticipantsContext);
-  const [winner, setWinner] = React.useState(null);
+  const [participants, setParticipants] = useState([]);
 
-  // 只從「已投入抽獎箱」的名單中抽獎
-  const enteredParticipants = participants.filter((p) => p.entered);
-  const notEnteredParticipants = participants.filter((p) => !p.entered);
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      const { data, error } = await supabase.from('participants').select('*');
+      if (error) {
+        console.error('讀取失敗:', error.message);
+      } else {
+        setParticipants(data);
+      }
+    };
 
-  const handleDraw = () => {
-    if (enteredParticipants.length === 0) {
-      alert('目前沒有可抽獎的參與者！');
-      return;
-    }
-    const randomIndex = Math.floor(Math.random() * enteredParticipants.length);
-    setWinner(enteredParticipants[randomIndex]);
-  };
+    fetchParticipants();
+
+    // 訂閱 Supabase 實時更新
+    const subscription = supabase
+      .channel('participants')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, (payload) => {
+        console.log('收到更新:', payload);
+        fetchParticipants(); // 更新畫面
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>抽獎系統</h1>
-      
-      { winner ? (
-        <div>
-          <h2>🎉 恭喜 {winner.name} 中獎！🎉</h2>
-        </div>
-      ) : (
-        <button onClick={handleDraw}>開始抽獎</button>
-      )}
 
-      <h3>🟢 已投入抽獎箱的參與者</h3>
+      <h2>已投入抽獎箱</h2>
       <ul>
-        {enteredParticipants.map((p) => (
-          <li key={p.id}>{p.name}</li>
+        {participants.filter(p => p.entered).map(p => (
+          <li key={p.id}>{p.name} - {p.contact}</li>
         ))}
       </ul>
 
-      <h3>🔴 尚未投入的參與者</h3>
+      <h2>只有填資料未掃 ID</h2>
       <ul>
-        {notEnteredParticipants.map((p) => (
-          <li key={p.id}>{p.name}</li>
+        {participants.filter(p => !p.entered).map(p => (
+          <li key={p.id}>{p.name} - {p.contact}</li>
         ))}
       </ul>
     </div>
