@@ -1,38 +1,49 @@
-import React, { useState } from 'react';
-import { supabase } from './supabase';
+import React, { useEffect, useRef, useState } from 'react';
 import QrScanner from 'qr-scanner';
+import { supabase } from './supabase';
 
-function ScanQRCode() {
-  const [scanResult, setScanResult] = useState('');
-  
-  const handleScan = async (result) => {
-    if (!result) return;
-    setScanResult(result);
+function ScanInterface() {
+  const videoRef = useRef(null);
+  const [scannedId, setScannedId] = useState(null);
+  const [message, setMessage] = useState('');
 
-    try {
-      const participantData = JSON.parse(result);
-      const { error } = await supabase
-        .from('participants')
-        .update({ entered: true })
-        .eq('id', participantData.id);
-
-      if (error) {
-        console.error('更新失敗:', error.message);
-      } else {
-        alert('參與者已投入抽獎箱！');
+  useEffect(() => {
+    const scanner = new QrScanner(videoRef.current, async result => {
+      if (result) {
+        scanner.stop();
+        handleScan(result.data);
       }
-    } catch (err) {
-      console.error('QR Code 格式錯誤:', err.message);
+    });
+
+    scanner.start().catch(err => setMessage(`錯誤: ${err.message}`));
+
+    return () => scanner.destroy();
+  }, []);
+
+  const handleScan = async (id) => {
+    setScannedId(id);
+    setMessage(`掃描成功: ${id}`);
+
+    // 更新 Supabase，將 entered 設為 true
+    const { error } = await supabase
+      .from('participants')
+      .update({ entered: true })
+      .eq('id', id);
+
+    if (error) {
+      setMessage(`更新失敗: ${error.message}`);
+    } else {
+      setMessage(`✅ 參與者 ${id} 成功加入抽獎箱！`);
     }
   };
 
   return (
     <div style={{ padding: '20px' }}>
-      <h1>掃描 QR Code</h1>
-      <QrScanner onScan={handleScan} />
-      <p>{scanResult && `掃描結果: ${scanResult}`}</p>
+      <h1>QR Code 掃描</h1>
+      <video ref={videoRef} style={{ width: '300px', height: '300px' }} />
+      <p>{message}</p>
     </div>
   );
 }
 
-export default ScanQRCode;
+export default ScanInterface;
