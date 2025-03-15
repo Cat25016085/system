@@ -67,7 +67,7 @@ import AdminLogin from './AdminLogin';
 import AdminDashboard from './AdminDashboard';
 import Lottery from './Lottery';
 import ScanInterface from './ScanInterface';
-
+import AdminPanel from './AdminPanel';
 function PrivateRoute({ element }) {
   const isAuthenticated = localStorage.getItem('adminAuth') === 'true';
   return isAuthenticated ? element : <Navigate to="/admin/login" />;
@@ -85,6 +85,8 @@ function App() {
         <Route path="/admin" element={<PrivateRoute element={<AdminDashboard />} />} />
         <Route path="/admin/lottery" element={<PrivateRoute element={<Lottery />} />} />
         <Route path="/admin/scan" element={<PrivateRoute element={<ScanInterface />} />} />
+        <Route path="/admin/AdminPanel"  element={<PrivateRoute element={<AdminPanel />} />} />
+        
 
         {/* 404 頁面 */}
         <Route path="*" element={<Navigate to="/" />} />

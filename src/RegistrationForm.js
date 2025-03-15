@@ -435,14 +435,82 @@
 
 
 
-import React, { useState } from 'react';
-import { supabase } from './supabase';
+// import React, { useState } from 'react';
+// import { supabase } from './supabase';
+// import { QRCodeCanvas } from 'qrcode.react';
+
+// function RegistrationForm() {
+//   const [formData, setFormData] = useState({ name: '', contact: '' });
+//   const [submitted, setSubmitted] = useState(false);
+//   const [qrValue, setQrValue] = useState('');
+
+//   const handleChange = (e) => {
+//     setFormData({ ...formData, [e.target.name]: e.target.value });
+//   };
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+
+//     // 將資料存入 Supabase
+//     const { data, error } = await supabase
+//       .from('participants')
+//       .insert([{ ...formData, entered: false }])
+//       .select();
+
+//     if (error) {
+//       console.error('儲存失敗:', error.message);
+//       return;
+//     }
+
+//     // 設定 QR Code
+//     setQrValue(JSON.stringify({ id: data[0].id }));
+//     setSubmitted(true);
+//   };
+
+//   return (
+//     <div style={{ padding: '20px' }}>
+//       <h1>抽獎登記</h1>
+//       { !submitted ? (
+//         <form onSubmit={handleSubmit}>
+//           <div style={{ marginBottom: '10px' }}>
+//             <label>姓名：</label>
+//             <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+//           </div>
+//           <div style={{ marginBottom: '10px' }}>
+//             <label>聯絡方式：</label>
+//             <input type="text" name="contact" value={formData.contact} onChange={handleChange} required />
+//           </div>
+//           <button type="submit">提交登記</button>
+//         </form>
+//       ) : (
+//         <div>
+//           <h2>登記成功！</h2>
+//           <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
+//           <QRCodeCanvas value={qrValue} />
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// export default RegistrationForm;
+
+
+
+
+import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
+import { supabase } from './supabase';
 
 function RegistrationForm() {
   const [formData, setFormData] = useState({ name: '', contact: '' });
   const [submitted, setSubmitted] = useState(false);
   const [qrValue, setQrValue] = useState('');
+
+  useEffect(() => {
+    const deviceId = localStorage.getItem('device_id');
+    if (deviceId) setSubmitted(true);
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -450,20 +518,14 @@ function RegistrationForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const deviceId = localStorage.getItem('device_id');
+    if (deviceId) return;
 
-    // 將資料存入 Supabase
-    const { data, error } = await supabase
-      .from('participants')
-      .insert([{ ...formData, entered: false }])
-      .select();
-
-    if (error) {
-      console.error('儲存失敗:', error.message);
-      return;
-    }
-
-    // 設定 QR Code
-    setQrValue(JSON.stringify({ id: data[0].id }));
+    const participantId = Date.now().toString();
+    const dataToSave = { ...formData, id: participantId, entered: false };
+    await supabase.from('participants').insert([dataToSave]);
+    localStorage.setItem('device_id', participantId);
+    setQrValue(JSON.stringify({ id: participantId }));
     setSubmitted(true);
   };
 
@@ -472,20 +534,13 @@ function RegistrationForm() {
       <h1>抽獎登記</h1>
       { !submitted ? (
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '10px' }}>
-            <label>姓名：</label>
-            <input type="text" name="name" value={formData.name} onChange={handleChange} required />
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <label>聯絡方式：</label>
-            <input type="text" name="contact" value={formData.contact} onChange={handleChange} required />
-          </div>
+          <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+          <input type="text" name="contact" value={formData.contact} onChange={handleChange} required />
           <button type="submit">提交登記</button>
         </form>
       ) : (
         <div>
           <h2>登記成功！</h2>
-          <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
           <QRCodeCanvas value={qrValue} />
         </div>
       )}
