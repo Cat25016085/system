@@ -508,17 +508,35 @@ function RegistrationForm() {
   const [qrValue, setQrValue] = useState('');
   const [entryNumber, setEntryNumber] = useState(null);
   const [participantId, setParticipantId] = useState(null);
+  const [existingUser, setExistingUser] = useState(null);
+  const [checking, setChecking] = useState(false);
+  const [deviceRestricted, setDeviceRestricted] = useState(false);
 
   useEffect(() => {
-    checkIfRegistered();
+    const storedId = localStorage.getItem('registeredId');
+    if (storedId) {
+      setDeviceRestricted(true);
+      loadExistingData(parseInt(storedId));
+    }
   }, []);
 
-  const checkIfRegistered = async () => {
+  const loadExistingData = async (id) => {
+    const { data, error } = await supabase.from('participants').select('*').eq('id', id).single();
+    if (!error && data) {
+      fetchEntryNumber(data.id);
+      setSubmitted(true);
+    }
+  };
+
+  const checkDuplicate = async () => {
+    setChecking(true);
     const { data, error } = await supabase
       .from('participants')
       .select('*')
-      .eq('contact', formData.contact) // 用聯絡方式檢查是否已登記
+      .eq('contact', formData.contact)
       .maybeSingle();
+
+    setChecking(false);
 
     if (error) {
       console.error('讀取失敗:', error.message);
@@ -526,10 +544,18 @@ function RegistrationForm() {
     }
 
     if (data) {
-      setSubmitted(true);
-      setParticipantId(data.id);
-      fetchEntryNumber(data.id);
+      setExistingUser(data);
+    } else {
+      setExistingUser(null);
+      handleSubmit();
     }
+  };
+
+  const confirmExisting = () => {
+    fetchEntryNumber(existingUser.id);
+    setSubmitted(true);
+    setExistingUser(null);
+    localStorage.setItem('registeredId', existingUser.id);
   };
 
   const fetchEntryNumber = async (id) => {
@@ -550,26 +576,7 @@ function RegistrationForm() {
     }
   };
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // 檢查是否已登記
-    const { data: existingUser } = await supabase
-      .from('participants')
-      .select('id')
-      .eq('contact', formData.contact)
-      .maybeSingle();
-
-    if (existingUser) {
-      alert('您已經登記過了！');
-      checkIfRegistered(); // 直接載入 QR Code
-      return;
-    }
-
+  const handleSubmit = async () => {
     const { data, error } = await supabase
       .from('participants')
       .insert([{ name: formData.name, contact: formData.contact, entered: false }])
@@ -584,24 +591,45 @@ function RegistrationForm() {
     setParticipantId(data.id);
     fetchEntryNumber(data.id);
     setSubmitted(true);
+    localStorage.setItem('registeredId', data.id);
   };
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>抽獎登記</h1>
-      {!submitted ? (
-        <form onSubmit={handleSubmit}>
+      {deviceRestricted && (
+        <p style={{ color: 'red' }}>此設備已填寫過，無法再次登記。</p>
+      )}
+      {!submitted && !deviceRestricted && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            checkDuplicate();
+          }}
+        >
           <div style={{ marginBottom: '10px' }}>
             <label>姓名：</label>
-            <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+            <input type="text" name="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
           </div>
           <div style={{ marginBottom: '10px' }}>
             <label>聯絡方式：</label>
-            <input type="text" name="contact" value={formData.contact} onChange={handleChange} required />
+            <input type="text" name="contact" value={formData.contact} onChange={(e) => setFormData({ ...formData, contact: e.target.value })} required />
           </div>
-          <button type="submit">提交登記</button>
+          <button type="submit" disabled={checking}>
+            {checking ? '檢查中...' : '提交登記'}
+          </button>
         </form>
-      ) : (
+      )}
+      {existingUser && (
+        <div>
+          <p>發現相同的聯絡方式！</p>
+          <p>姓名: <strong>{existingUser.name}</strong></p>
+          <p>填寫時間: <strong>{new Date(existingUser.created_at).toLocaleString()}</strong></p>
+          <button onClick={confirmExisting}>是我的</button>
+          <button onClick={() => setExistingUser(null)}>不是，重新填寫</button>
+        </div>
+      )}
+      {submitted && (
         <div>
           <h2>登記成功！</h2>
           <p>您的抽獎序號：<strong>{entryNumber}</strong></p>
