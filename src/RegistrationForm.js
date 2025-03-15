@@ -510,13 +510,27 @@ function RegistrationForm() {
   const [participantId, setParticipantId] = useState(null);
 
   useEffect(() => {
-    const storedId = localStorage.getItem('participantId');
-    if (storedId) {
-      setSubmitted(true);
-      setParticipantId(storedId);
-      fetchEntryNumber(parseInt(storedId, 10)); // 取得抽獎序號
-    }
+    checkIfRegistered();
   }, []);
+
+  const checkIfRegistered = async () => {
+    const { data, error } = await supabase
+      .from('participants')
+      .select('*')
+      .eq('contact', formData.contact) // 用聯絡方式檢查是否已登記
+      .maybeSingle();
+
+    if (error) {
+      console.error('讀取失敗:', error.message);
+      return;
+    }
+
+    if (data) {
+      setSubmitted(true);
+      setParticipantId(data.id);
+      fetchEntryNumber(data.id);
+    }
+  };
 
   const fetchEntryNumber = async (id) => {
     const { data, error } = await supabase
@@ -542,23 +556,33 @@ function RegistrationForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (localStorage.getItem('participantId')) return;
+
+    // 檢查是否已登記
+    const { data: existingUser } = await supabase
+      .from('participants')
+      .select('id')
+      .eq('contact', formData.contact)
+      .maybeSingle();
+
+    if (existingUser) {
+      alert('您已經登記過了！');
+      checkIfRegistered(); // 直接載入 QR Code
+      return;
+    }
 
     const { data, error } = await supabase
       .from('participants')
       .insert([{ name: formData.name, contact: formData.contact, entered: false }])
-      .select('id');
+      .select('id')
+      .single();
 
     if (error) {
       console.error('資料存入失敗:', error.message);
       return;
     }
 
-    const id = data[0].id;
-    setParticipantId(id);
-    localStorage.setItem('participantId', id);
-
-    fetchEntryNumber(id);
+    setParticipantId(data.id);
+    fetchEntryNumber(data.id);
     setSubmitted(true);
   };
 
