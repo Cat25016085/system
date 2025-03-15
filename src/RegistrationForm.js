@@ -507,12 +507,34 @@ function RegistrationForm() {
   const [submitted, setSubmitted] = useState(false);
   const [qrValue, setQrValue] = useState('');
   const [entryNumber, setEntryNumber] = useState(null);
+  const [participantId, setParticipantId] = useState(null);
 
   useEffect(() => {
-    if (localStorage.getItem('registered')) {
+    const storedId = localStorage.getItem('participantId');
+    if (storedId) {
       setSubmitted(true);
+      setParticipantId(storedId);
+      fetchEntryNumber(parseInt(storedId, 10)); // 取得抽獎序號
     }
   }, []);
+
+  const fetchEntryNumber = async (id) => {
+    const { data, error } = await supabase
+      .from('participants')
+      .select('id')
+      .order('id', { ascending: true });
+
+    if (error) {
+      console.error('讀取失敗:', error.message);
+      return;
+    }
+
+    const index = data.findIndex((p) => p.id === id);
+    if (index !== -1) {
+      setEntryNumber(index + 1);
+      setQrValue(JSON.stringify({ id, entry: index + 1 }));
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -520,9 +542,8 @@ function RegistrationForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (localStorage.getItem('registered')) return;
+    if (localStorage.getItem('participantId')) return;
 
-    // 儲存到 Supabase
     const { data, error } = await supabase
       .from('participants')
       .insert([{ name: formData.name, contact: formData.contact, entered: false }])
@@ -533,17 +554,11 @@ function RegistrationForm() {
       return;
     }
 
-    const participantId = data[0].id;
+    const id = data[0].id;
+    setParticipantId(id);
+    localStorage.setItem('participantId', id);
 
-    // 計算抽獎序號（依 SQL 編號從 1 開始）
-    const { count } = await supabase.from('participants').select('*', { count: 'exact' });
-    setEntryNumber(count);
-
-    // QR Code 內包含 ID 和抽獎序號
-    setQrValue(JSON.stringify({ id: participantId, entry: count }));
-
-    // 設定已登記狀態
-    localStorage.setItem('registered', 'true');
+    fetchEntryNumber(id);
     setSubmitted(true);
   };
 
@@ -575,4 +590,3 @@ function RegistrationForm() {
 }
 
 export default RegistrationForm;
-
