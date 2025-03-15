@@ -29,29 +29,67 @@
 
 
 
+// import React from 'react';
+// import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+// import RegistrationForm from './RegistrationForm';
+// import ScanInterface from './ScanInterface';
+// import Lottery from './Lottery';
+// import { ParticipantsProvider } from './ParticipantsContext';
+
+// function App() {
+//   return (
+//     <ParticipantsProvider>
+//       <BrowserRouter>
+//         <nav style={{ marginBottom: '20px' }}>
+//           <Link to="/" style={{ marginRight: '10px' }}>登記頁面</Link>
+//           <Link to="/scan" style={{ marginRight: '10px' }}>掃描頁面</Link>
+//           <Link to="/lottery">抽獎系統</Link>
+//         </nav>
+//         <Routes>
+//           <Route path="/" element={<RegistrationForm />} />
+//           <Route path="/scan" element={<ScanInterface />} />
+//           <Route path="/lottery" element={<Lottery />} />
+//         </Routes>
+//       </BrowserRouter>
+//     </ParticipantsProvider>
+//   );
+// }
+
+// export default App;
+
+
+
+
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import RegistrationForm from './RegistrationForm';
-import ScanInterface from './ScanInterface';
+import AdminLogin from './AdminLogin';
+import AdminDashboard from './AdminDashboard';
 import Lottery from './Lottery';
-import { ParticipantsProvider } from './ParticipantsContext';
+import ScanInterface from './ScanInterface';
+
+function PrivateRoute({ element }) {
+  const isAuthenticated = localStorage.getItem('adminAuth') === 'true';
+  return isAuthenticated ? element : <Navigate to="/admin/login" />;
+}
 
 function App() {
   return (
-    <ParticipantsProvider>
-      <BrowserRouter>
-        <nav style={{ marginBottom: '20px' }}>
-          <Link to="/" style={{ marginRight: '10px' }}>登記頁面</Link>
-          <Link to="/scan" style={{ marginRight: '10px' }}>掃描頁面</Link>
-          <Link to="/lottery">抽獎系統</Link>
-        </nav>
-        <Routes>
-          <Route path="/" element={<RegistrationForm />} />
-          <Route path="/scan" element={<ScanInterface />} />
-          <Route path="/lottery" element={<Lottery />} />
-        </Routes>
-      </BrowserRouter>
-    </ParticipantsProvider>
+    <Router>
+      <Routes>
+        {/* 前台：只提供登記功能 */}
+        <Route path="/" element={<RegistrationForm />} />
+
+        {/* 後台：需登入 */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin" element={<PrivateRoute element={<AdminDashboard />} />} />
+        <Route path="/admin/lottery" element={<PrivateRoute element={<Lottery />} />} />
+        <Route path="/admin/scan" element={<PrivateRoute element={<ScanInterface />} />} />
+
+        {/* 404 頁面 */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Router>
   );
 }
 
