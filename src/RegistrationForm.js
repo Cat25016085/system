@@ -506,10 +506,12 @@ function RegistrationForm() {
   const [formData, setFormData] = useState({ name: '', contact: '' });
   const [submitted, setSubmitted] = useState(false);
   const [qrValue, setQrValue] = useState('');
+  const [entryNumber, setEntryNumber] = useState(null);
 
   useEffect(() => {
-    const deviceId = localStorage.getItem('device_id');
-    if (deviceId) setSubmitted(true);
+    if (localStorage.getItem('registered')) {
+      setSubmitted(true);
+    }
   }, []);
 
   const handleChange = (e) => {
@@ -518,29 +520,53 @@ function RegistrationForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const deviceId = localStorage.getItem('device_id');
-    if (deviceId) return;
+    if (localStorage.getItem('registered')) return;
 
-    const participantId = Date.now().toString();
-    const dataToSave = { ...formData, id: participantId, entered: false };
-    await supabase.from('participants').insert([dataToSave]);
-    localStorage.setItem('device_id', participantId);
-    setQrValue(JSON.stringify({ id: participantId }));
+    // 儲存到 Supabase
+    const { data, error } = await supabase
+      .from('participants')
+      .insert([{ name: formData.name, contact: formData.contact, entered: false }])
+      .select('id');
+
+    if (error) {
+      console.error('資料存入失敗:', error.message);
+      return;
+    }
+
+    const participantId = data[0].id;
+
+    // 計算抽獎序號（依 SQL 編號從 1 開始）
+    const { count } = await supabase.from('participants').select('*', { count: 'exact' });
+    setEntryNumber(count);
+
+    // QR Code 內包含 ID 和抽獎序號
+    setQrValue(JSON.stringify({ id: participantId, entry: count }));
+
+    // 設定已登記狀態
+    localStorage.setItem('registered', 'true');
     setSubmitted(true);
   };
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>抽獎登記</h1>
-      { !submitted ? (
+      {!submitted ? (
         <form onSubmit={handleSubmit}>
-          <input type="text" name="name" value={formData.name} onChange={handleChange} required />
-          <input type="text" name="contact" value={formData.contact} onChange={handleChange} required />
+          <div style={{ marginBottom: '10px' }}>
+            <label>姓名：</label>
+            <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+          </div>
+          <div style={{ marginBottom: '10px' }}>
+            <label>聯絡方式：</label>
+            <input type="text" name="contact" value={formData.contact} onChange={handleChange} required />
+          </div>
           <button type="submit">提交登記</button>
         </form>
       ) : (
         <div>
           <h2>登記成功！</h2>
+          <p>您的抽獎序號：<strong>{entryNumber}</strong></p>
+          <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
           <QRCodeCanvas value={qrValue} />
         </div>
       )}
@@ -549,3 +575,4 @@ function RegistrationForm() {
 }
 
 export default RegistrationForm;
+
