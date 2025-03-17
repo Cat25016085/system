@@ -97,7 +97,7 @@ function RegistrationForm() {
       <h1>抽獎登記</h1>
       {submitted ? (
         <div>
-          <h2>登記成功！</h2>
+          <h2>此設備已登記！</h2>
           <p>您的抽獎序號：<strong>{entryNumber}</strong></p>
           <QRCodeCanvas value={qrValue} />
         </div>
