@@ -556,6 +556,7 @@ function RegistrationForm() {
     setSubmitted(true);
     setExistingUser(null);
     localStorage.setItem('registeredId', existingUser.id);
+    setDeviceRestricted(true);
   };
 
   const fetchEntryNumber = async (id) => {
@@ -592,12 +593,13 @@ function RegistrationForm() {
     fetchEntryNumber(data.id);
     setSubmitted(true);
     localStorage.setItem('registeredId', data.id);
+    setDeviceRestricted(true); // 避免重複提交
   };
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>抽獎登記</h1>
-      {deviceRestricted && (
+      {deviceRestricted && submitted && (
         <p style={{ color: 'red' }}>此設備已填寫過，無法再次登記。</p>
       )}
       {!submitted && !deviceRestricted && (
@@ -642,3 +644,4 @@ function RegistrationForm() {
 }
 
 export default RegistrationForm;
+
