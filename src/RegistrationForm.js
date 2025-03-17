@@ -497,7 +497,6 @@
 
 
 
-
 import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { supabase } from './supabase';
@@ -521,12 +520,14 @@ function RegistrationForm() {
   }, []);
 
   const loadExistingData = async (id) => {
+    setParticipantId(id); // 確保 participantId 被正確設置
     const { data, error } = await supabase.from('participants').select('*').eq('id', id).single();
     if (!error && data) {
       fetchEntryNumber(data.id);
       setSubmitted(true);
     }
   };
+  
 
   const checkDuplicate = async () => {
     setChecking(true);
@@ -556,7 +557,6 @@ function RegistrationForm() {
     setSubmitted(true);
     setExistingUser(null);
     localStorage.setItem('registeredId', existingUser.id);
-    setDeviceRestricted(true);
   };
 
   const fetchEntryNumber = async (id) => {
@@ -593,14 +593,18 @@ function RegistrationForm() {
     fetchEntryNumber(data.id);
     setSubmitted(true);
     localStorage.setItem('registeredId', data.id);
-    setDeviceRestricted(true); // 避免重複提交
   };
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>抽獎登記</h1>
       {deviceRestricted && submitted && (
-        <p style={{ color: 'red' }}>此設備已填寫過，無法再次登記。</p>
+        <div>
+          <p style={{ color: 'red' }}>此設備已填寫過，無法再次登記。</p>
+          <h2>您的抽獎序號：<strong>{entryNumber}</strong></h2>
+          <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
+          <QRCodeCanvas value={qrValue} />
+        </div>
       )}
       {!submitted && !deviceRestricted && (
         <form
@@ -631,7 +635,7 @@ function RegistrationForm() {
           <button onClick={() => setExistingUser(null)}>不是，重新填寫</button>
         </div>
       )}
-      {submitted && (
+      {submitted && !deviceRestricted && (
         <div>
           <h2>登記成功！</h2>
           <p>您的抽獎序號：<strong>{entryNumber}</strong></p>
@@ -644,4 +648,3 @@ function RegistrationForm() {
 }
 
 export default RegistrationForm;
-
