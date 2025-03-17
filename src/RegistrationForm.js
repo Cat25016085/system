@@ -497,9 +497,166 @@
 
 
 
+// import React, { useState, useEffect } from 'react';
+// import { QRCodeCanvas } from 'qrcode.react';
+// import { supabase } from './supabase';
+
+// function RegistrationForm() {
+//   const [formData, setFormData] = useState({ name: '', contact: '' });
+//   const [submitted, setSubmitted] = useState(false);
+//   const [qrValue, setQrValue] = useState('');
+//   const [entryNumber, setEntryNumber] = useState(null);
+//   const [participantId, setParticipantId] = useState(null);
+//   const [existingUser, setExistingUser] = useState(null);
+//   const [checking, setChecking] = useState(false);
+//   const [deviceRestricted, setDeviceRestricted] = useState(false);
+
+//   useEffect(() => {
+//     const storedId = localStorage.getItem('registeredId');
+//     if (storedId) {
+//       setDeviceRestricted(true);
+//       loadExistingData(parseInt(storedId));
+//     }
+//   }, []);
+
+//   const loadExistingData = async (id) => {
+//     setParticipantId(id); // 確保 participantId 被正確設置
+//     const { data, error } = await supabase.from('participants').select('*').eq('id', id).single();
+//     if (!error && data) {
+//       fetchEntryNumber(data.id);
+//       setSubmitted(true);
+//     }
+//   };
+  
+
+//   const checkDuplicate = async () => {
+//     setChecking(true);
+//     const { data, error } = await supabase
+//       .from('participants')
+//       .select('*')
+//       .eq('contact', formData.contact)
+//       .maybeSingle();
+
+//     setChecking(false);
+
+//     if (error) {
+//       console.error('讀取失敗:', error.message);
+//       return;
+//     }
+
+//     if (data) {
+//       setExistingUser(data);
+//     } else {
+//       setExistingUser(null);
+//       handleSubmit();
+//     }
+//   };
+
+//   const confirmExisting = () => {
+//     fetchEntryNumber(existingUser.id);
+//     setSubmitted(true);
+//     setExistingUser(null);
+//     localStorage.setItem('registeredId', existingUser.id);
+//   };
+
+//   const fetchEntryNumber = async (id) => {
+//     const { data, error } = await supabase
+//       .from('participants')
+//       .select('id')
+//       .order('id', { ascending: true });
+
+//     if (error) {
+//       console.error('讀取失敗:', error.message);
+//       return;
+//     }
+
+//     const index = data.findIndex((p) => p.id === id);
+//     if (index !== -1) {
+//       setEntryNumber(index + 1);
+//       setQrValue(JSON.stringify({ id, entry: index + 1 }));
+//     }
+//   };
+
+//   const handleSubmit = async () => {
+//     const { data, error } = await supabase
+//       .from('participants')
+//       .insert([{ name: formData.name, contact: formData.contact, entered: false }])
+//       .select('id')
+//       .single();
+
+//     if (error) {
+//       console.error('資料存入失敗:', error.message);
+//       return;
+//     }
+
+//     setParticipantId(data.id);
+//     fetchEntryNumber(data.id);
+//     setSubmitted(true);
+//     localStorage.setItem('registeredId', data.id);
+//   };
+
+//   return (
+//     <div style={{ padding: '20px' }}>
+//       <h1>抽獎登記</h1>
+//       {deviceRestricted && submitted && (
+//         <div>
+//           <p style={{ color: 'red' }}>此設備已填寫過，無法再次登記。</p>
+//           <h2>您的抽獎序號：<strong>{entryNumber}</strong></h2>
+//           <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
+//           <QRCodeCanvas value={qrValue} />
+//         </div>
+//       )}
+//       {!submitted && !deviceRestricted && (
+//         <form
+//           onSubmit={(e) => {
+//             e.preventDefault();
+//             checkDuplicate();
+//           }}
+//         >
+//           <div style={{ marginBottom: '10px' }}>
+//             <label>姓名：</label>
+//             <input type="text" name="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+//           </div>
+//           <div style={{ marginBottom: '10px' }}>
+//             <label>聯絡方式：</label>
+//             <input type="text" name="contact" value={formData.contact} onChange={(e) => setFormData({ ...formData, contact: e.target.value })} required />
+//           </div>
+//           <button type="submit" disabled={checking}>
+//             {checking ? '檢查中...' : '提交登記'}
+//           </button>
+//         </form>
+//       )}
+//       {existingUser && (
+//         <div>
+//           <p>發現相同的聯絡方式！</p>
+//           <p>姓名: <strong>{existingUser.name}</strong></p>
+//           <p>填寫時間: <strong>{new Date(existingUser.created_at).toLocaleString()}</strong></p>
+//           <button onClick={confirmExisting}>是我的</button>
+//           <button onClick={() => setExistingUser(null)}>不是，重新填寫</button>
+//         </div>
+//       )}
+//       {submitted && !deviceRestricted && (
+//         <div>
+//           <h2>登記成功！</h2>
+//           <p>您的抽獎序號：<strong>{entryNumber}</strong></p>
+//           <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
+//           <QRCodeCanvas value={qrValue} />
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// export default RegistrationForm;
+
+
+
+
+
 import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { supabase } from './supabase';
+import { v4 as uuidv4 } from 'uuid'; // 產生唯一設備 ID
 
 function RegistrationForm() {
   const [formData, setFormData] = useState({ name: '', contact: '' });
@@ -509,56 +666,34 @@ function RegistrationForm() {
   const [participantId, setParticipantId] = useState(null);
   const [existingUser, setExistingUser] = useState(null);
   const [checking, setChecking] = useState(false);
-  const [deviceRestricted, setDeviceRestricted] = useState(false);
+  const [deviceId, setDeviceId] = useState(null);
 
   useEffect(() => {
-    const storedId = localStorage.getItem('registeredId');
-    if (storedId) {
-      setDeviceRestricted(true);
-      loadExistingData(parseInt(storedId));
+    let storedDeviceId = localStorage.getItem('deviceId');
+    if (!storedDeviceId) {
+      storedDeviceId = uuidv4(); // 生成新的設備 ID
+      localStorage.setItem('deviceId', storedDeviceId);
     }
+    setDeviceId(storedDeviceId);
+    checkDeviceRegistration(storedDeviceId);
   }, []);
 
-  const loadExistingData = async (id) => {
-    setParticipantId(id); // 確保 participantId 被正確設置
-    const { data, error } = await supabase.from('participants').select('*').eq('id', id).single();
+  // 🔹 檢查設備是否已經註冊過
+  const checkDeviceRegistration = async (deviceId) => {
+    const { data, error } = await supabase
+      .from('participants')
+      .select('*')
+      .eq('device_id', deviceId)
+      .single();
+
     if (!error && data) {
+      setParticipantId(data.id);
       fetchEntryNumber(data.id);
       setSubmitted(true);
     }
   };
-  
 
-  const checkDuplicate = async () => {
-    setChecking(true);
-    const { data, error } = await supabase
-      .from('participants')
-      .select('*')
-      .eq('contact', formData.contact)
-      .maybeSingle();
-
-    setChecking(false);
-
-    if (error) {
-      console.error('讀取失敗:', error.message);
-      return;
-    }
-
-    if (data) {
-      setExistingUser(data);
-    } else {
-      setExistingUser(null);
-      handleSubmit();
-    }
-  };
-
-  const confirmExisting = () => {
-    fetchEntryNumber(existingUser.id);
-    setSubmitted(true);
-    setExistingUser(null);
-    localStorage.setItem('registeredId', existingUser.id);
-  };
-
+  // 🔹 取得抽獎序號
   const fetchEntryNumber = async (id) => {
     const { data, error } = await supabase
       .from('participants')
@@ -577,10 +712,16 @@ function RegistrationForm() {
     }
   };
 
+  // 🔹 提交表單
   const handleSubmit = async () => {
     const { data, error } = await supabase
       .from('participants')
-      .insert([{ name: formData.name, contact: formData.contact, entered: false }])
+      .insert([{ 
+        name: formData.name, 
+        contact: formData.contact, 
+        device_id: deviceId,
+        entered: false 
+      }])
       .select('id')
       .single();
 
@@ -592,25 +733,22 @@ function RegistrationForm() {
     setParticipantId(data.id);
     fetchEntryNumber(data.id);
     setSubmitted(true);
-    localStorage.setItem('registeredId', data.id);
   };
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>抽獎登記</h1>
-      {deviceRestricted && submitted && (
+      {submitted ? (
         <div>
-          <p style={{ color: 'red' }}>此設備已填寫過，無法再次登記。</p>
-          <h2>您的抽獎序號：<strong>{entryNumber}</strong></h2>
-          <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
+          <h2>登記成功！</h2>
+          <p>您的抽獎序號：<strong>{entryNumber}</strong></p>
           <QRCodeCanvas value={qrValue} />
         </div>
-      )}
-      {!submitted && !deviceRestricted && (
+      ) : (
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            checkDuplicate();
+            handleSubmit();
           }}
         >
           <div style={{ marginBottom: '10px' }}>
@@ -621,27 +759,8 @@ function RegistrationForm() {
             <label>聯絡方式：</label>
             <input type="text" name="contact" value={formData.contact} onChange={(e) => setFormData({ ...formData, contact: e.target.value })} required />
           </div>
-          <button type="submit" disabled={checking}>
-            {checking ? '檢查中...' : '提交登記'}
-          </button>
+          <button type="submit">提交登記</button>
         </form>
-      )}
-      {existingUser && (
-        <div>
-          <p>發現相同的聯絡方式！</p>
-          <p>姓名: <strong>{existingUser.name}</strong></p>
-          <p>填寫時間: <strong>{new Date(existingUser.created_at).toLocaleString()}</strong></p>
-          <button onClick={confirmExisting}>是我的</button>
-          <button onClick={() => setExistingUser(null)}>不是，重新填寫</button>
-        </div>
-      )}
-      {submitted && !deviceRestricted && (
-        <div>
-          <h2>登記成功！</h2>
-          <p>您的抽獎序號：<strong>{entryNumber}</strong></p>
-          <p>請將以下 QR Code 提供給工作人員掃描，確認您已加入抽獎箱。</p>
-          <QRCodeCanvas value={qrValue} />
-        </div>
       )}
     </div>
   );
